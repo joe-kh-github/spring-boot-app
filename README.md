@@ -17,6 +17,7 @@ java -Duser.language=fr -jar app-0.0.1-SNAPSHOT.jar
 - `GET https:/localhost:8080/user/{username}`
 **This will fetch user's details by username** 
 - `POST https://localhost:8080/user`
+
     ```json
     {
         "username":"john",
