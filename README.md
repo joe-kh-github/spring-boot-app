@@ -2,7 +2,7 @@
 ## Build project
 ```
 cd app/
-mvn clean package
+mvn -Dmaven.test.skip=true clean package
 ```
 ## Run the app
 ```
