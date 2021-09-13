@@ -1,69 +1,72 @@
 package com.springboot.app;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-import org.assertj.core.api.Assertions;
 import org.bson.types.ObjectId;
 import org.json.JSONObject;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.Mockito;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.http.ResponseEntity;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.springboot.app.controllers.UserController;
 import com.springboot.app.entities.User;
 import com.springboot.app.models.UserVO;
-import com.springboot.app.services.UserService;
+import com.springboot.app.services.UserServiceImpl;
 
-@RunWith(SpringRunner.class)
-@WebMvcTest
-
+@WebMvcTest(controllers = UserController.class)
+@ExtendWith(MockitoExtension.class)
 public class UserControllerTest {
 
 	@Autowired
 	private MockMvc mockMvc;
 
+	@InjectMocks
+	private UserController userController;
+
 	@MockBean
-	private UserService userService;
-
-	@Before
-	public void setUp() throws Exception {
-
-	}
+	private UserServiceImpl userServiceImpl;
 
 	@Test
-	public void whenGetNonUser_thenThrowExcpetion() throws Exception {
+	public void whenGetUser_thenReturnResponse() throws Exception {
 
-		System.out.println("whenGetNonUser_thenThrowExcpetion");
 		String name = "john";
-		User userVO = new User();
-		userVO.setUsername(name);
-		Mockito.when(userService.findByUsername(name)).thenReturn(userVO);
+		User user = new User();
+		user.setID(new ObjectId("6139e4fd624e636dce582a51"));
+		user.setUsername(name);
+		user.setBirthDate(new SimpleDateFormat("yyyy-MM-dd").parse("2000-12-12"));
+		user.setCountryOfResidence("France");
+		user.setPhoneNumber("+122342342343");
+		user.setGender(User.GENDER.MALE);
 
-		MockHttpServletRequestBuilder mockRequest = MockMvcRequestBuilders.get("/user/" + name)
-				.contentType(MediaType.APPLICATION_JSON);
+		when(userServiceImpl.findByUsername(name)).thenReturn(user);
 
-		Assertions.assertThatThrownBy(() -> mockMvc.perform(mockRequest)).hasCauseInstanceOf(NullPointerException.class)
-				.hasMessageContaining("Request processing failed");
+		UserVO userVO = userController.fetchByUsername(name);
+
+		assertEquals("john", userVO.getUsername());
+		assertEquals("male", userVO.getGender().toString().toLowerCase().trim());
+		assertEquals("+122342342343", userVO.getPhoneNumber());
 	}
 
 	@Test
 	public void whenPostUser_thenReturnResponse() throws Exception {
-
-		System.out.println("whenPostUser_thenReturnResponse");
 
 		UserVO userVO = new UserVO();
 		String dateStr = "2000-12-12";
@@ -74,17 +77,13 @@ public class UserControllerTest {
 		userVO.setPhoneNumber("+122342342343");
 		userVO.setGender("male");
 
-		MockHttpServletRequestBuilder mockRequest = MockMvcRequestBuilders.post("/user")
-				.contentType(MediaType.APPLICATION_JSON).accept(MediaType.APPLICATION_JSON)
-				.content(new ObjectMapper().writeValueAsString(userVO));
+		ResponseEntity<String> resp = userController.save(userVO);
 
-		mockMvc.perform(mockRequest).andExpect(status().isCreated());
+		assertEquals(HttpStatus.CREATED.value(), resp.getStatusCodeValue());
 	}
 
 	@Test
 	public void whenPostUserWithoutUsername_thenReturnInvalidRequest() throws Exception {
-
-		System.out.println("whenPostUserWithoutUsername_thenReturnInvalidRequest");
 
 		UserVO userVO = new UserVO();
 		userVO.setBirthDate(new SimpleDateFormat("yyyy-MM-dd").parse("2020-12-12"));
@@ -97,13 +96,18 @@ public class UserControllerTest {
 		MockHttpServletRequestBuilder mockRequest = MockMvcRequestBuilders.post("/user")
 				.contentType(MediaType.APPLICATION_JSON).accept(MediaType.APPLICATION_JSON).content(json);
 
-		mockMvc.perform(mockRequest).andExpect(status().isBadRequest());
+		MvcResult mvcResult = mockMvc.perform(mockRequest).andReturn();
+
+		int statusCode = mvcResult.getResponse().getStatus();
+		String bodyMessage = mvcResult.getResponse().getContentAsString();
+
+		assertEquals(HttpStatus.BAD_REQUEST.value(), statusCode);
+		assertTrue(bodyMessage.contains("user.username.notempty"));
+		assertTrue(bodyMessage.contains("user.username.notnull"));
 	}
 
 	@Test
 	public void whenPostUserWithInvalidPhoneNb_thenReturnInvalidRequest() throws Exception {
-
-		System.out.println("whenPostUserWithInvalidPhoneNb_thenReturnInvalidRequest");
 
 		UserVO userVO = new UserVO();
 		userVO.setUsername("john");
@@ -117,7 +121,13 @@ public class UserControllerTest {
 		MockHttpServletRequestBuilder mockRequest = MockMvcRequestBuilders.post("/user")
 				.contentType(MediaType.APPLICATION_JSON).accept(MediaType.APPLICATION_JSON).content(json);
 
-		mockMvc.perform(mockRequest).andExpect(status().isBadRequest());
+		MvcResult mvcResult = mockMvc.perform(mockRequest).andReturn();
+
+		int statusCode = mvcResult.getResponse().getStatus();
+		String bodyMessage = mvcResult.getResponse().getContentAsString();
+
+		assertEquals(HttpStatus.BAD_REQUEST.value(), statusCode);
+		assertTrue(bodyMessage.contains("size must be"));
 	}
 
 	@Test
@@ -133,7 +143,7 @@ public class UserControllerTest {
 		user.setPhoneNumber("+122342342343");
 		user.setGender(User.GENDER.MALE);
 
-		Mockito.when(userService.findByUsername(name)).thenReturn(user);
+		when(userServiceImpl.findByUsername(name)).thenReturn(user);
 
 		MvcResult mvcResult = mockMvc
 				.perform(MockMvcRequestBuilders.get("/user/" + name).contentType(MediaType.APPLICATION_JSON))
@@ -149,10 +159,9 @@ public class UserControllerTest {
 		assertEquals("2000-12-11T22:00:00.000+00:00", jsonObject.getString("birthDate"));
 		assertEquals("john", jsonObject.getString("username"));
 	}
-	
+
 	@Test
 	public void whenEndpointDoesNotExist_thenReturnPageNotFound() throws Exception {
-		System.out.println("whenEndpointDoesNotExist_thenReturnPageNotFound");
 		mockMvc.perform(MockMvcRequestBuilders.get("/test").contentType(MediaType.APPLICATION_JSON))
 				.andExpect(status().isNotFound()).andReturn();
 	}

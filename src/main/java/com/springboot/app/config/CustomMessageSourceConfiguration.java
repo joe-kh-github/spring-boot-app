@@ -9,6 +9,7 @@ import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 @Configuration
 public class CustomMessageSourceConfiguration {
 
+	// read message translation from resources/messages_${lang}
 	@Bean
 	public MessageSource messageSource() {
 		ReloadableResourceBundleMessageSource messageSource = new ReloadableResourceBundleMessageSource();
@@ -17,6 +18,7 @@ public class CustomMessageSourceConfiguration {
 		return messageSource;
 	}
 
+	// register validation message source  
 	@Bean
 	public LocalValidatorFactoryBean getValidator() {
 		LocalValidatorFactoryBean bean = new LocalValidatorFactoryBean();
