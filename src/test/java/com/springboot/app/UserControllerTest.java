@@ -6,6 +6,8 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.text.SimpleDateFormat;
+import java.time.Month;
+import java.util.Calendar;
 import java.util.Date;
 
 import org.bson.types.ObjectId;
@@ -133,12 +135,15 @@ public class UserControllerTest {
 	@Test
 	public void whenUserExist_thenReturnResponse() throws Exception {
 
-		System.out.println("whenUserExist_thenReturnResponse");
 		String name = "john";
 		User user = new User();
 		user.setID(new ObjectId("6139e4fd624e636dce582a51"));
 		user.setUsername(name);
-		user.setBirthDate(new SimpleDateFormat("yyyy-MM-dd").parse("2000-12-12"));
+		Calendar calendar = Calendar.getInstance();
+		calendar.set(Calendar.YEAR, 2000);
+		calendar.set(Calendar.MONTH, Month.JULY.getValue());
+		calendar.set(Calendar.DAY_OF_MONTH, 12);
+		user.setBirthDate(calendar.getTime());
 		user.setCountryOfResidence("France");
 		user.setPhoneNumber("+122342342343");
 		user.setGender(User.GENDER.MALE);
@@ -156,7 +161,7 @@ public class UserControllerTest {
 		assertEquals("MALE", jsonObject.getString("gender"));
 		assertEquals("6139e4fd624e636dce582a51", jsonObject.getString("id"));
 		assertEquals("France", jsonObject.getString("countryOfResidence"));
-		assertEquals("2000-12-11T22:00:00.000+00:00", jsonObject.getString("birthDate"));
+		assertEquals("2000-08-12", jsonObject.getString("birthDate").split("T")[0]);
 		assertEquals("john", jsonObject.getString("username"));
 	}
 

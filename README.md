@@ -1,7 +1,7 @@
 # Spring Boot App
 ## Build project
 ```
-cd app/
+cd sprint-boot-app/
 mvn clean package
 ```
 ## Run the app
